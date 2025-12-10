@@ -1,0 +1,31 @@
+name: Deploy to shinyapps.io
+
+# permite rodar automaticamente ao push e manualmente via Actions → Run workflow
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:   # permite rodar manualmente pelo botão "Run workflow"
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install dependencies
+        # instala só o rsconnect (o servidor do shinyapps instalará os pacotes necessários no deploy),
+        # mas instalar rsconnect evita falha por falta dele.
+        run: R -e "install.packages('rsconnect', repos='https://cloud.r-project.org')"
+
+      - name: Deploy to shinyapps.io
+        env:
+          SHINYAPPS_TOKEN: ${{ secrets.TOKEN }}
+          SHINYAPPS_SECRET: ${{ secrets.SECRET }}
+        run: |
+          R -e "rsconnect::setAccountInfo(name='brouwilliambertran', token=Sys.getenv('SHINYAPPS_TOKEN'), secret=Sys.getenv('SHINYAPPS_SECRET'))"
+          R -e "rsconnect::deployApp(appDir='.', appName='saneamento-nordeste1', account='brouwilliambertran')"
